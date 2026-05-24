@@ -1,0 +1,2 @@
+- [背景最重要](feedback_context_first.md) — 只做当前背景下的高概率交易
+- [Brooks Signals 项目](project_brooks_signals.md) — XAUUSD 半自动信号面板，M2 主周期，协作模式

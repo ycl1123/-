@@ -1,0 +1,68 @@
+symbol: XAUUSDm
+timeframes:
+  primary: M2
+  secondary: [M5, M15, H1]
+
+analysis:
+  signal_k:
+    strong_trend_body_ratio: 0.70
+    strong_trend_size_multiplier: 1.5
+    doji_body_ratio: 0.10
+    pin_bar_wick_multiplier: 3.0
+    lookback_for_avg: 5
+
+  support_resistance:
+    swing_order: 5
+    ema_period: 20
+    round_number_step: 50
+
+  key_zones:
+    range_lookback: 20
+    range_touch_min: 2
+    confluence_threshold_pct: 0.05
+
+  market_context:
+    always_in_threshold: 0.3
+    ema_slope_lookback: 20
+    momentum_lookback: 5
+
+  # ============ V5 新增：矛盾论参数 ============
+  contradiction:
+    lookback: 20
+    bar_strength_decay_threshold: 0.6
+    pullback_deepening_threshold: 0.6
+    momentum_divergence_threshold: 0.5
+    climax_atr_multiplier: 1.8
+    climax_min_count: 3
+    sr_proximity_pct: 0.002
+    ema_proximity_pct: 0.0015
+
+  # ============ V5 新增：游击战参数 ============
+  guerrilla:
+    resonance_strong_threshold: 3
+    resonance_offense_threshold: 4
+    resonance_defense_threshold: 1
+    contradiction_downgrade: true
+    max_risk_defense_pct: 0.5
+    max_risk_offense_pct: 1.0
+
+  # ============ V5 新增：实践论参数 ============
+  practice:
+    journal_path: "data/practice_log.jsonl"
+    cycle_size: 10
+    min_records_for_insight: 5
+
+mt5:
+  polling_interval_ms: 5000
+  history_bars: 500
+  lot_size: 0.01
+  risk_pct: 0.03               # 每笔风险3%
+  daily_profit_target_pct: 0.15  # 日盈利目标15%
+  contract_size: 100           # XAUUSD标准手=100盎司
+
+gui:
+  theme: dark
+  window_title: XAUUSD 信号面板 (M2) V5 矛盾论·实践论·游击战
+  window_width: 1000
+  window_height: 700
+  alert_max_rows: 500

@@ -1,0 +1,20 @@
+[00:47:56] ==================================================
+[00:47:56] 诊断启动开始
+[00:47:56] Step1 配置: OK - XAUUSDm / {'primary': 'M2', 'secondary': ['M5', 'M15', 'H1']}
+[00:47:56] Step2 PyQt6: OK
+[00:47:56] Step3 GUI模块: OK
+[00:47:56] Step4 MT5模块: import OK
+[00:47:56] Step5 QApplication: OK
+[00:47:56] Step6 创建主窗口...
+[00:47:56] Step6 MainWindow: OK
+[00:47:56] Step7 窗口已显示，进入事件循环
+[00:53:59] ==================================================
+[00:53:59] 诊断启动开始
+[00:53:59] Step1 配置: OK - XAUUSDm / {'primary': 'M2', 'secondary': ['M5', 'M15', 'H1']}
+[00:53:59] Step2 PyQt6: OK
+[00:53:59] Step3 GUI模块: OK
+[00:53:59] Step4 MT5模块: import OK
+[00:53:59] Step5 QApplication: OK
+[00:53:59] Step6 创建主窗口...
+[00:53:59] Step6 MainWindow: OK
+[00:54:00] Step7 窗口已显示，进入事件循环
