@@ -53,7 +53,7 @@ analysis:
     min_records_for_insight: 5
 
 mt5:
-  polling_interval_ms: 5000
+  polling_interval_ms: 2500
   history_bars: 500
   lot_size: 0.01
   risk_pct: 0.03               # 每笔风险3%

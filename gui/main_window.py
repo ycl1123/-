@@ -32,7 +32,6 @@ class MainWindow(QMainWindow):
         self._poll_bridge = None
         self._trade_bridge = None
         self._sl_tp_bridge = None
-        self._pre_close_bridge = None
         self._protected_tickets: set = set()
         self._sl_tp_queue: list = []
         self._heads_up_sent: set = set()
@@ -269,9 +268,12 @@ class MainWindow(QMainWindow):
         new_bars = bars_cache.get(primary_tf)
         if new_bars is None or len(new_bars) == 0:
             return
+
+        # Track if a new bar closed (for alert dedup)
         last_time = self._last_bar_times.get(primary_tf)
-        if last_time is not None and new_bars.index[-1] <= last_time:
-            return
+        bar_closed = last_time is not None and new_bars.index[-1] > last_time
+
+        # Always update cache and panels with latest data
         self._bars_cache = bars_cache
         for tf, df in bars_cache.items():
             if len(df) > 0:
@@ -375,8 +377,9 @@ class MainWindow(QMainWindow):
     # ═══════════════════════════════════════════
 
     def _check_pre_close(self):
-        """Check if we're in the last 5 seconds of the current primary TF bar."""
-        if not self._polling or self._pre_close_bridge is not None or self._poll_bridge is not None:
+        """Check if we're in the last 5 seconds of the current primary TF bar.
+        Uses latest analysis (already updated by poll timer) — no separate fetch."""
+        if not self._polling:
             return
 
         primary_tf = self.cfg.timeframes["primary"]
@@ -396,67 +399,25 @@ class MainWindow(QMainWindow):
         if bar_key in self._heads_up_sent:
             return
         self._heads_up_sent.add(bar_key)
-        # Clean old entries (keep last 10)
         if len(self._heads_up_sent) > 50:
             self._heads_up_sent = set(list(self._heads_up_sent)[-10:])
 
-        tf_list = [primary_tf] + self.cfg.timeframes.get("secondary", [])
-        self._pre_close_bridge = MT5Bridge(self.cfg.symbol, tf_list, self.cfg.mt5.history_bars)
-        self._pre_close_bridge.result_ready.connect(self._on_pre_close_result)
-        self._pre_close_bridge.start()
-        self.status_bar.showMessage(
-            f"⏰ {primary_tf} 即将收盘 ({seconds_left:.0f}秒) — 正在分析预警..."
-        )
-
-    def _on_pre_close_result(self, success: bool, message: str, bars_cache: dict, account_info: dict):
-        self._pre_close_bridge = None
-        if not success or not bars_cache:
-            return
-
-        primary_tf = self.cfg.timeframes["primary"]
-        bars = bars_cache.get(primary_tf)
-        if bars is None or len(bars) < 10:
-            return
-
-        try:
-            result = self.engine.analyze(self.cfg.symbol, primary_tf, bars)
-            self._update_all_panels(result)
-            self._generate_pre_close_alerts(result)
-            if account_info:
-                self._last_account_info = account_info
-                self._last_balance = account_info.get('balance', 0)
-        except Exception:
-            pass
-
-    def _generate_pre_close_alerts(self, result: AnalysisResult):
-        """Heads-up alerts with ⏰ prefix — signal preview before bar closes."""
-        sym, tf = result.symbol, result.timeframe
-        sk = result.signal_k
-        ctx = result.context
-
-        if sk is not None:
-            type_name = sk.bar_type.name
-            if type_name in ("STRONG_TREND", "REVERSAL"):
-                direction = "多头" if sk.is_bullish else "空头"
-                self.alerts.add(sym, tf,
-                    f"⏰ 收盘预警 [{type_name}] {direction} (评分{sk.score:+.2f}) | 准备入场",
-                    AlertSeverity.SIGNAL)
-
-        for ts in result.trade_signals:
+        # Fire heads-up using latest signals (already fresh from poll)
+        if self._current_signals:
+            self.status_bar.showMessage(
+                f"⏰ {primary_tf} 即将收盘 ({seconds_left:.0f}秒) | "
+                f"{len(self._current_signals)}个信号就绪"
+            )
+        for ts in self._current_signals:
             if ts.strength.value <= SignalStrength.MEDIUM.value:
                 dir_cn = DIR_MAP.get(ts.direction, ts.direction)
-                self.alerts.add(sym, tf,
+                self.alerts.add(
+                    self.cfg.symbol, primary_tf,
                     f"⏰ 收盘预警 [{ts.signal_type.value}] {dir_cn} | "
                     f"入场{ts.entry_price:.1f} 止损{ts.stop_price:.1f} 目标{ts.target_price:.1f} | "
                     f"置信度{ts.confidence:.0%} | 推荐{getattr(ts, 'recommended_lot', 0.01):.2f}手",
-                    AlertSeverity.SIGNAL)
-
-        if sk and ctx:
-            self.status_bar.showMessage(
-                f"⏰ {tf}收盘预警 | Always In: {ctx.always_in.direction} | "
-                f"K线: {sk.bar_type.name}({sk.score:+.2f}) | "
-                f"信号数: {len(result.trade_signals)}"
-            )
+                    AlertSeverity.SIGNAL
+                )
 
     # ═══════════════════════════════════════════
     # Auto SL/TP Protection (detect naked positions, auto-set SL/TP)
@@ -650,8 +611,6 @@ class MainWindow(QMainWindow):
             self._bridge.stop()
         if self._poll_bridge:
             self._poll_bridge.stop()
-        if self._pre_close_bridge:
-            self._pre_close_bridge.stop()
         if self._trade_bridge:
             self._trade_bridge.stop()
         if self._sl_tp_bridge:
